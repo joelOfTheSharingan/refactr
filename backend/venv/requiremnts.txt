@@ -1,0 +1,6 @@
+flask
+gunicorn
+requests
+playwright
+beautifulsoup4
+gitpython
