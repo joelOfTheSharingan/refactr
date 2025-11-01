@@ -13,11 +13,12 @@ export default function App() {
     setResult(null);
 
     try {
-      const response = await fetch("http://127.0.0.1:5000/analyze/url", {
+      const response = await fetch("https://refactr-al20.onrender.com/analyze/url", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url }),
       });
+      
       const data = await response.json();
       setResult(data);
     } catch (err) {
