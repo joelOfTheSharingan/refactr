@@ -10,8 +10,18 @@ from urllib.parse import urljoin
 
 # Load environment variables
 load_dotenv()
+
 app = Flask(__name__)
-CORS(app)
+
+# Allow requests from your GitHub Pages and local dev environment
+CORS(app, resources={
+    r"/*": {
+        "origins": [
+            "https://joelofthesharingan.github.io",
+            "http://localhost:5173"
+        ]
+    }
+})
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
@@ -102,6 +112,12 @@ Format your reply exactly like this:
     return "⚠️ No AI response (all free models failed or rate-limited)."
 
 
+@app.route("/", methods=["GET"])
+def home():
+    """Simple health-check route for Render."""
+    return jsonify({"message": "Refactr backend running"}), 200
+
+
 @app.route("/analyze/url", methods=["POST"])
 def analyze_url():
     """Analyze a URL and return AI-powered design feedback."""
@@ -152,6 +168,7 @@ Focus your feedback on:
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
