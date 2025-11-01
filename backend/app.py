@@ -17,7 +17,7 @@ OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
 # List of free models to rotate through
 FREE_MODELS = [
-    "z-ai/glm-4.5-air:free",
+    "agentica-org/deepcoder-14b-preview:free",
     "google/gemma-2-9b-it:free",
     "tngtech/deepseek-r1t2-chimera:free",
     "mistralai/mistral-7b-instruct:free",
