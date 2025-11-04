@@ -1,7 +1,8 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-export default defineConfig({
+// ✅ dynamic base: "/" locally, "/refactr/" on GitHub Pages
+export default defineConfig(({ command }) => ({
   plugins: [react()],
-  base: '/refactr/', // 👈 your GitHub repo name
-})
+  base: command === 'serve' ? '/' : '/refactr/',
+}))
