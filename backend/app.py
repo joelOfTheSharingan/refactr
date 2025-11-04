@@ -13,34 +13,85 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# Allow requests from your GitHub Pages and local dev environment
-CORS(app, resources={
-    r"/*": {
-        "origins": [
-            "https://joelofthesharingan.github.io",
-            "http://localhost:5173"
-        ]
-    }
-})
+# --- Detect environment ---
+def is_render_env():
+    """Return True if running on Render, False if local."""
+    return "RENDER" in os.environ or "RENDER_EXTERNAL_URL" in os.environ
 
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+IS_RENDER = is_render_env()
 
-# List of free models to rotate through
-FREE_MODELS = [
-    "agentica-org/deepcoder-14b-preview:free",
-    "google/gemma-2-9b-it:free",
-    "tngtech/deepseek-r1t2-chimera:free",
-    "mistralai/mistral-7b-instruct:free",
-    "deepseek/deepseek-coder:free"
+# --- Configure CORS dynamically ---
+if IS_RENDER:
+    print("🌐 Running in Render environment")
+    allowed_origins = ["https://joelofthesharingan.github.io"]
+else:
+    print("💻 Running locally")
+    allowed_origins = ["http://localhost:5173"]
+
+CORS(app, resources={r"/*": {"origins": allowed_origins}})
+
+# --- API Keys ---
+GEMINI_API_KEY_1 = os.getenv("GEMINI_API_KEY_1")
+GEMINI_API_KEY_2 = os.getenv("GEMINI_API_KEY_2")
+
+# --- Gemini Models ---
+GEMINI_MODELS = [
+    "gemini-2.5-pro",
+    "gemini-2.5-flash",
+    "gemini-2.5-flash-lite",
+    "gemini-2.0-flash",
+    "gemini-2.0-flash-lite",
 ]
 
-last_successful_model = None  # Remember the last working model
+
+def ask_gemini(prompt, system_prompt=""):
+    """Try Gemini models in order with both API keys."""
+    combined_prompt = f"{system_prompt}\nUser Request:\n{prompt}"
+    for api_key in [GEMINI_API_KEY_1, GEMINI_API_KEY_2]:
+        if not api_key:
+            continue
+
+        for model in GEMINI_MODELS:
+            print(f"🔍 Trying {model} with key ending {api_key[-6:]}")
+            try:
+                url = (
+                    f"https://generativelanguage.googleapis.com/v1beta/models/"
+                    f"{model}:generateContent?key={api_key}"
+                )
+                payload = {"contents": [{"parts": [{"text": combined_prompt}]}]}
+                response = requests.post(
+                    url,
+                    headers={"Content-Type": "application/json"},
+                    json=payload,
+                    timeout=40,
+                )
+
+                if response.status_code == 200:
+                    data = response.json()
+                    text = (
+                        data.get("candidates", [{}])[0]
+                        .get("content", {})
+                        .get("parts", [{}])[0]
+                        .get("text", "")
+                    )
+                    if text:
+                        print(f"✅ Success with {model}")
+                        return text.strip()
+                    print(f"⚠️ Empty response from {model}")
+                else:
+                    print(f"❌ {model} failed ({response.status_code})")
+
+            except Exception as e:
+                print(f"⚠️ {model} error: {e}")
+
+            time.sleep(2)
+
+    print("❌ All Gemini models and API keys failed.")
+    return "⚠️ No AI response (Gemini rotation + keys failed)."
 
 
 def ask_ai(prompt):
-    """Try several free models until one works, formatted for design feedback."""
-    global last_successful_model
-
+    """Gemini-only feedback system."""
     system_prompt = """
 You are a world-class web design and front-end development expert.
 Your task is to CRITIQUE and IMPROVE websites with professional precision.
@@ -64,58 +115,16 @@ Format your reply exactly like this:
 /* Example improvement */
 ```
 """
-
-    model_order = [last_successful_model] + FREE_MODELS if last_successful_model else FREE_MODELS
-
-    for model in model_order:
-        if not model:
-            continue
-
-        print(f"🧠 Trying model: {model}")
-        try:
-            response = requests.post(
-                "https://openrouter.ai/api/v1/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-                    "Content-Type": "application/json",
-                },
-                data=json.dumps({
-                    "model": model,
-                    "messages": [
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": prompt}
-                    ]
-                }),
-                timeout=40
-            )
-
-            data = response.json()
-            content = data.get("choices", [{}])[0].get("message", {}).get("content")
-
-            if content:
-                last_successful_model = model
-                print(f"✅ Success with {model}")
-
-                # Ensure the format is consistent
-                if "🧠" not in content:
-                    content = f"🧠 **AI Feedback**\n{content}\n\n💡 **Example Fixes**\n```css\n/* Add your improvements here */\n```"
-
-                return content.strip()
-
-            print(f"❌ Empty response from {model}")
-
-        except Exception as e:
-            print(f"⚠️ Model {model} failed:", e)
-
-        time.sleep(4)  # Slight delay between retries
-
-    return "⚠️ No AI response (all free models failed or rate-limited)."
+    return ask_gemini(prompt, system_prompt)
 
 
 @app.route("/", methods=["GET"])
 def home():
-    """Simple health-check route for Render."""
-    return jsonify({"message": "Refactr backend running"}), 200
+    return jsonify({
+        "status": "ok",
+        "environment": "Render" if IS_RENDER else "Local",
+        "message": "Refactr Gemini-only backend running"
+    })
 
 
 @app.route("/analyze/url", methods=["POST"])
@@ -133,7 +142,11 @@ def analyze_url():
 
         title = soup.title.string if soup.title else "No title"
         text = " ".join([p.get_text() for p in soup.find_all("p")])[:2000]
-        css_links = [link["href"] for link in soup.find_all("link", rel="stylesheet") if link.get("href")]
+        css_links = [
+            link["href"]
+            for link in soup.find_all("link", rel="stylesheet")
+            if link.get("href")
+        ]
 
         css_content = ""
         if css_links:
@@ -171,5 +184,5 @@ Focus your feedback on:
 
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5001))
+    port = int(os.environ.get("PORT", 5001 if not IS_RENDER else 10000))
     app.run(host="0.0.0.0", port=port)
