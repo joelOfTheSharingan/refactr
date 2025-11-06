@@ -14,14 +14,7 @@ load_dotenv()
 app = Flask(__name__)
 
 # Allow requests from your GitHub Pages and local dev environment
-CORS(app, resources={
-    r"/*": {
-        "origins": [
-            "https://joelofthesharingan.github.io",
-            "http://localhost:5173"
-        ]
-    }
-})
+CORS(app, supports_credentials=True)
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
