@@ -1,12 +1,10 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// ✅ Works in both localhost and GitHub Pages
 export default defineConfig(({ command }) => ({
   plugins: [react()],
-  base: command === 'serve' ? '/' : '/refactr/',
+  base: command === 'serve' ? '/' : '/refactr/', // 👈 your repo name exactly
   build: {
-    outDir: '.',       // keep using docs for GitHub Pages
-    emptyOutDir: false // prevent deleting source during build
-  }
+    outDir: 'docs', // 👈 output build files here for GitHub Pages
+  },
 }))

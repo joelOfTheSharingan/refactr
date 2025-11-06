@@ -7,32 +7,18 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Dependency directories
-node_modules/
-
-# Build output
-dist/
-dist-ssr/
+node_modules
+dist
+dist-ssr
 *.local
-
-# GitHub Pages build output (if using docs as build folder)
-docs/
 
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
-.idea/
+.idea
 .DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-
-# Environment files
-.env
-.env.*
-!.env.example
-
-# OS generated files
-Thumbs.db
