@@ -3,7 +3,7 @@ import { Search, Sparkles, AlertCircle, CheckCircle, ExternalLink, Copy, Check }
 
 export default function App() {
   const [url, setUrl] = useState("");
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
