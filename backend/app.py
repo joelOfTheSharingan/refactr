@@ -3,7 +3,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
 from styleanalyzer import analyze_website
-from testfunctionality import test_site_functionality
+from testfunctionality import run_test as test_site_functionality
 from logictester import test_html_logic
 
 # --- Setup ---

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import {
   Search,
   Sparkles,
@@ -19,8 +19,8 @@ export default function App() {
   // --- Mode Handling ---
   const handleModeChange = (newMode: "styling" | "basic" | "logic") => {
     setMode(newMode);
-    if (newMode !== "styling") {
-      alert("We are currently under development for this mode!");
+    if (newMode === "logic") {
+      alert("Logic testing mode is currently under development!");
     }
   };
 
@@ -30,17 +30,29 @@ export default function App() {
     setResult(null);
 
     try {
-      const backendUrl =
-  window.location.hostname === "localhost"
-    ? "http://localhost:5001/analyze/url"
-    : "https://refactr-al20.onrender.com/analyze/url";
+      const base =
+        window.location.hostname === "localhost"
+          ? "http://localhost:5001"
+          : "https://refactr-al20.onrender.com";
 
-const response = await fetch(backendUrl, {
+      // Select API endpoint
+      let endpoint = "/analyze/url";
+      if (mode === "basic") endpoint = "/test/functionality";
+      if (mode === "logic") endpoint = "/test/logic";
 
+      // If logic mode, warn and return
+      if (mode === "logic") {
+        alert("Logic testing mode is under development!");
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch(`${base}${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url }),
       });
+
       const data = await response.json();
       setResult(data);
     } catch (err) {
@@ -51,7 +63,7 @@ const response = await fetch(backendUrl, {
     }
   }
 
-  const handleKeyPress = (e: KeyboardEvent) => {
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && !loading) analyzeUrl();
   };
 
@@ -98,7 +110,7 @@ const response = await fetch(backendUrl, {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative">
-      {/* Animated background */}
+      {/* Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute w-96 h-96 bg-purple-500/20 rounded-full blur-3xl -top-48 -left-48 animate-pulse"></div>
         <div className="absolute w-96 h-96 bg-blue-500/20 rounded-full blur-3xl -bottom-48 -right-48 animate-pulse delay-1000"></div>
@@ -120,7 +132,7 @@ const response = await fetch(backendUrl, {
           </p>
         </div>
 
-        {/* Mode Slider */}
+        {/* Mode Selector */}
         <div className="flex justify-center mb-8">
           <div className="flex bg-slate-800/60 border border-slate-700 rounded-full shadow-lg overflow-hidden">
             <button
@@ -156,97 +168,96 @@ const response = await fetch(backendUrl, {
           </div>
         </div>
 
-        {/* Main UI — Only active for "styling" */}
-        {mode === "styling" ? (
-          <>
-            {/* Input Section */}
-            <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl p-8 shadow-2xl border border-slate-700/50 mb-8">
-              <div className="flex gap-3">
-                <div className="flex-1 relative">
-                  <input
-                    type="text"
-                    placeholder="https://example.com"
-                    value={url}
-                    onChange={(e) => setUrl(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    className="w-full px-6 py-4 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                  />
-                  {url && (
-                    <ExternalLink className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                  )}
+        {/* Input & Results */}
+        <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl p-8 shadow-2xl border border-slate-700/50 mb-8">
+          <div className="flex gap-3">
+            <div className="flex-1 relative">
+              <input
+                type="text"
+                placeholder="https://example.com"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                onKeyPress={handleKeyPress}
+                className="w-full px-6 py-4 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+              />
+              {url && (
+                <ExternalLink className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+              )}
+            </div>
+            <button
+              onClick={analyzeUrl}
+              disabled={loading || !url.trim()}
+              className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 disabled:from-slate-600 disabled:to-slate-600 text-white font-semibold rounded-xl transition-all transform hover:scale-105 disabled:hover:scale-100 disabled:cursor-not-allowed shadow-lg shadow-purple-500/50 disabled:shadow-none flex items-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  Analyzing...
+                </>
+              ) : (
+                <>
+                  <Search className="w-5 h-5" />
+                  Analyze
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Loading State */}
+        {loading && (
+          <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl p-12 shadow-2xl border border-slate-700/50 text-center">
+            <div className="w-16 h-16 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-slate-300">Analyzing your website...</p>
+          </div>
+        )}
+
+        {/* Show AI or Functionality Results */}
+        {result && !loading && (
+          <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl p-8 shadow-2xl border border-slate-700/50 animate-slide-up">
+            <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-700">
+              <div className="flex items-center gap-3">
+                <CheckCircle className="w-6 h-6 text-emerald-400" />
+                <div>
+                  <h2 className="text-xl font-semibold text-white">Analysis Complete</h2>
+                  <p className="text-sm text-slate-400">
+                    {mode === "basic"
+                      ? "Basic functionality test results"
+                      : "Styling AI insights"}
+                  </p>
                 </div>
+              </div>
+              {result?.ai_analysis && (
                 <button
-                  onClick={analyzeUrl}
-                  disabled={loading || !url.trim()}
-                  className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 disabled:from-slate-600 disabled:to-slate-600 text-white font-semibold rounded-xl transition-all transform hover:scale-105 disabled:hover:scale-100 disabled:cursor-not-allowed shadow-lg shadow-purple-500/50 disabled:shadow-none flex items-center gap-2"
+                  onClick={copyToClipboard}
+                  className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg transition-colors"
                 >
-                  {loading ? (
+                  {copied ? (
                     <>
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                      Analyzing...
+                      <Check className="w-4 h-4" />
+                      Copied!
                     </>
                   ) : (
                     <>
-                      <Search className="w-5 h-5" />
-                      Analyze
+                      <Copy className="w-4 h-4" />
+                      Copy
                     </>
                   )}
                 </button>
-              </div>
+              )}
             </div>
 
-            {/* Results */}
-            {loading && (
-              <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl p-12 shadow-2xl border border-slate-700/50 text-center">
-                <div className="w-16 h-16 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin mx-auto mb-4"></div>
-                <p className="text-slate-300">Analyzing your website...</p>
-              </div>
-            )}
-
-            {result?.ai_analysis && !loading && (
-              <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl p-8 shadow-2xl border border-slate-700/50 animate-slide-up">
-                <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-700">
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="w-6 h-6 text-emerald-400" />
-                    <div>
-                      <h2 className="text-xl font-semibold text-white">Analysis Complete</h2>
-                      <p className="text-sm text-slate-400">{result.title}</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={copyToClipboard}
-                    className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg transition-colors"
-                  >
-                    {copied ? (
-                      <>
-                        <Check className="w-4 h-4" />
-                        Copied!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-4 h-4" />
-                        Copy
-                      </>
-                    )}
-                  </button>
-                </div>
-                <div className="space-y-6">{parseAnalysis(result.ai_analysis)}</div>
-              </div>
-            )}
-
-            {result?.error && !loading && (
-              <div className="bg-red-900/20 backdrop-blur-xl rounded-2xl p-8 shadow-2xl border border-red-500/50 animate-slide-up">
-                <div className="flex items-center gap-3 mb-4">
-                  <AlertCircle className="w-6 h-6 text-red-400" />
-                  <h2 className="text-xl font-semibold text-white">Error</h2>
-                </div>
-                <p className="text-red-200">{result.error}</p>
-              </div>
-            )}
-          </>
-        ) : (
-          <div className="text-center text-slate-400 italic mt-10">
-            Development mode active...
+            {result?.ai_analysis ? (
+              <div className="space-y-6">{parseAnalysis(result.ai_analysis)}</div>
+            ) : result?.details ? (
+              <ul className="text-slate-200 space-y-2">
+                {result.details.map((r: string, i: number) => (
+                  <li key={i}>{r}</li>
+                ))}
+              </ul>
+            ) : result?.error ? (
+              <p className="text-red-400">{result.error}</p>
+            ) : null}
           </div>
         )}
       </div>
