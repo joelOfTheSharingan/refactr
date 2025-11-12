@@ -64,7 +64,7 @@ async def test_basic_functionality(url: str, username: str = None, password: str
 
     try:
         async with async_playwright() as p:
-            browser: Browser = await p.chromium.launch(headless=True,args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"])
+            browser: Browser = await p.chromium.launch(headless=True,args=["--no-sandbox", "--disable-setuid-sandbox"])
             page = await browser.new_page()
 
             # optional: record console messages for debugging
